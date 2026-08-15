@@ -70,7 +70,7 @@ function App() {
           <div className="hero-copy">
             <div className="eyebrow"><span className="eyebrow-dot" />PORTAFOLIO / 01 — 2026</div>
             <h1>De los<br /><em>fogones</em><br />al futuro.</h1>
-            <p className="hero-intro">Soy Alejandro García. Durante años convertí ingredientes en experiencias memorables. Hoy aplico esa misma obsesión al software.</p>
+            <p className="hero-intro">Soy Alejandro. Durante años convertí ingredientes en experiencias memorables. Hoy aplico esa misma obsesión al software.</p>
             <div className="hero-actions"><a className="button button--dark" href="#historia">Conoce mi historia <Arrow /></a><a className="text-link" href="#contacto">Trabajemos juntos <span>↗</span></a></div>
           </div>
           <ChefToCodeIllustration />
