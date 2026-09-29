@@ -1,110 +1,333 @@
-import { useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 
-const Arrow = () => (
-  <svg viewBox="0 0 24 24" aria-hidden="true">
-    <path d="M5 12h13M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.8" />
-  </svg>
-)
+const asset = (path: string) => `${import.meta.env.BASE_URL}${path}`
 
-const Spark = ({ className = '' }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 36 36" aria-hidden="true">
-    <path d="M18 2c.7 9.8 6.2 15.3 16 16-9.8.7-15.3 6.2-16 16-.7-9.8-6.2-15.3-16-16C11.8 17.3 17.3 11.8 18 2Z" fill="currentColor" />
-  </svg>
-)
+const sections = [
+  ['inicio', 'Inicio'],
+  ['perfil', 'Perfil'],
+  ['trayectoria', 'Trayectoria'],
+  ['obra', 'Obra culinaria'],
+  ['sushi-zen', 'Sushi Zen'],
+  ['productos', 'Productos'],
+  ['nexvora', 'Nexvora'],
+  ['contacto', 'Contacto'],
+] as const
 
-function ChefToCodeIllustration() {
+const heroVideos = [
+  'portfolio/video/01-intro.mp4',
+  'portfolio/video/02-process.mp4',
+  'portfolio/video/03-finale.mp4',
+]
+
+const culinaryPhotos = [
+  ['culinary/mezcal-negro.png', 'Cóctel de mezcal negro'],
+  ['culinary/filete-ciruela.jpeg', 'Filete con salsa de ciruela'],
+  ['images/chocolate-plate.jpeg', 'Postre de chocolate'],
+  ['culinary/mousse-maracuya.png', 'Mousse de maracuyá'],
+  ['culinary/postre-nitrogeno.png', 'Postre con nitrógeno'],
+  ['images/garden-bowl.jpeg', 'Composición gastronómica vegetal'],
+  ['images/citrus-dessert.jpeg', 'Postre cítrico'],
+  ['images/smoke-coupe.jpeg', 'Presentación con humo'],
+] as const
+
+function Arrow({ direction = 'right' }: { direction?: 'right' | 'down' }) {
   return (
-    <div className="hero-art" aria-label="Una olla que se transforma en código">
-      <span className="art-label art-label--top">EST. 2010</span>
-      <span className="art-label art-label--bottom">BUILDING 2026</span>
-      <span className="orbit orbit--one" />
-      <span className="orbit orbit--two" />
-      <Spark className="hero-spark hero-spark--one" />
-      <Spark className="hero-spark hero-spark--two" />
-      <svg viewBox="0 0 580 580" role="img" aria-hidden="true">
-        <defs><path id="curve" d="M74 204C185 72 405 72 506 203" /></defs>
-        <text className="round-type"><textPath href="#curve" startOffset="50%" textAnchor="middle">DE LA COCINA A LA CONSTRUCCIÓN DIGITAL</textPath></text>
-        <path className="steam steam--one" d="M212 230c-17-24 22-31 4-57" />
-        <path className="steam steam--two" d="M284 210c17-25-20-39 5-66" />
-        <path className="steam steam--three" d="M350 227c-14-25 19-36 4-60" />
-        <g className="pan">
-          <path d="M148 274h279l-19 118c-3 22-20 38-43 38H210c-23 0-40-16-43-38l-19-118Z" />
-          <path d="M143 274c0-19 16-34 35-34h219c19 0 35 15 35 34v10H143v-10Z" />
-          <path d="M427 310h56c18 0 28 20 17 35l-27 37" />
-          <path d="M182 350h212" className="pan-line" /><path d="M202 384h167" className="pan-line" />
-        </g>
-        <g className="code-window">
-          <rect x="266" y="288" width="202" height="145" rx="10" /><path d="M266 318h202" />
-          <circle cx="284" cy="302" r="4" /><circle cx="298" cy="302" r="4" /><circle cx="312" cy="302" r="4" />
-          <path d="M288 344l-15 13 15 13M318 344l15 13-15 13M348 344l-15 13 15 13M374 344h56M348 384h68M288 409h36" className="code-lines" />
-        </g>
-        <path className="stir-path" d="M98 440c87 49 265 72 397-11" />
-      </svg>
-    </div>
+    <svg className={`arrow arrow--${direction}`} viewBox="0 0 24 24" aria-hidden="true">
+      <path d="M4 12h15M13 6l6 6-6 6" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" />
+    </svg>
   )
 }
 
-function DishIcon() { return <svg viewBox="0 0 60 60" aria-hidden="true"><path d="M9 37h42M15 37c1 9 7 14 15 14s14-5 15-14M7 31h46M11 31c2-10 10-16 19-16s17 6 19 16M30 7v8" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg> }
-function CodeIcon() { return <svg viewBox="0 0 60 60" aria-hidden="true"><path d="m22 20-11 10 11 10M38 20l11 10-11 10M34 13 26 47" fill="none" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.7" /></svg> }
-
 function App() {
+  const [activeSection, setActiveSection] = useState('inicio')
+  const [videoIndex, setVideoIndex] = useState(0)
+  const [videoPaused, setVideoPaused] = useState(false)
+  const [copied, setCopied] = useState<string | null>(null)
+  const videoRefs = useRef<Array<HTMLVideoElement | null>>([])
+  const transitionLock = useRef(false)
+
+  const sectionIndex = Math.max(0, sections.findIndex(([id]) => id === activeSection))
+
   useEffect(() => {
-    const observer = new IntersectionObserver(
-      (entries) => entries.forEach((entry) => entry.isIntersecting && entry.target.classList.add('is-visible')),
-      { threshold: 0.14 },
+    const revealObserver = new IntersectionObserver(
+      (entries) => entries.forEach((entry) => entry.target.classList.toggle('is-visible', entry.isIntersecting)),
+      { threshold: 0.12 },
     )
-    document.querySelectorAll('.reveal').forEach((element) => observer.observe(element))
-    return () => observer.disconnect()
+
+    const sectionObserver = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0]
+        if (visible?.target.id) setActiveSection(visible.target.id)
+      },
+      { rootMargin: '-20% 0px -60% 0px', threshold: [0.05, 0.2, 0.5] },
+    )
+
+    document.querySelectorAll('.reveal').forEach((element) => revealObserver.observe(element))
+    sections.forEach(([id]) => {
+      const section = document.getElementById(id)
+      if (section) sectionObserver.observe(section)
+    })
+
+    return () => {
+      revealObserver.disconnect()
+      sectionObserver.disconnect()
+    }
   }, [])
+
+  const scrollToSection = (id: string) => {
+    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  const toggleVideo = async () => {
+    const video = videoRefs.current[videoIndex]
+    if (!video) return
+    if (video.paused) {
+      await video.play()
+      setVideoPaused(false)
+    } else {
+      video.pause()
+      setVideoPaused(true)
+    }
+  }
+
+  const advanceVideo = (currentIndex: number) => {
+    if (currentIndex !== videoIndex || transitionLock.current || videoPaused) return
+    transitionLock.current = true
+    const nextIndex = (currentIndex + 1) % heroVideos.length
+    const nextVideo = videoRefs.current[nextIndex]
+    if (!nextVideo) {
+      transitionLock.current = false
+      return
+    }
+    nextVideo.currentTime = 0
+    nextVideo.playbackRate = 0.92
+    void nextVideo.play()
+    setVideoIndex(nextIndex)
+    window.setTimeout(() => {
+      videoRefs.current[currentIndex]?.pause()
+      transitionLock.current = false
+    }, 650)
+  }
+
+  const copyContact = async (label: string, value: string) => {
+    try {
+      await navigator.clipboard.writeText(value)
+    } catch {
+      const input = document.createElement('textarea')
+      input.value = value
+      input.setAttribute('readonly', '')
+      input.style.position = 'fixed'
+      input.style.opacity = '0'
+      document.body.appendChild(input)
+      input.select()
+      document.execCommand('copy')
+      input.remove()
+    }
+    setCopied(label)
+    window.setTimeout(() => setCopied(null), 1800)
+  }
 
   return (
     <main>
-      <section className="hero-section" id="inicio">
-        <nav className="nav shell">
-          <a href="#inicio" className="monogram" aria-label="Alejandro García, inicio">AG<span>_</span></a>
-          <div className="nav-links"><a href="#historia">Historia</a><a href="#habilidades">Habilidades</a><a href="#contacto">Contacto</a></div>
-          <a className="nav-cta" href="mailto:hola@alejandrogarcia.dev">Hablemos <Arrow /></a>
-        </nav>
-        <div className="hero shell">
-          <div className="hero-copy">
-            <div className="eyebrow"><span className="eyebrow-dot" />PORTAFOLIO / 01 — 2026</div>
-            <h1>De los<br /><em>fogones</em><br />al futuro.</h1>
-            <p className="hero-intro">Soy Alejandro. Durante años convertí ingredientes en experiencias memorables. Hoy aplico esa misma obsesión al software.</p>
-            <div className="hero-actions"><a className="button button--dark" href="#historia">Conoce mi historia <Arrow /></a><a className="text-link" href="#contacto">Trabajemos juntos <span>↗</span></a></div>
+      <section className="hero" id="inicio" aria-labelledby="hero-title">
+        {heroVideos.map((src, index) => (
+          <video
+            ref={(element) => { videoRefs.current[index] = element }}
+            className={`hero__video${index === videoIndex ? ' is-active' : ''}`}
+            autoPlay={index === 0}
+            muted
+            playsInline
+            preload="auto"
+            onLoadedMetadata={(event) => { event.currentTarget.playbackRate = 0.92 }}
+            onTimeUpdate={(event) => {
+              const video = event.currentTarget
+              if (video.duration - video.currentTime < 0.55) advanceVideo(index)
+            }}
+            onEnded={() => advanceVideo(index)}
+            aria-hidden="true"
+            key={src}
+          >
+            <source src={asset(src)} type="video/mp4" />
+          </video>
+        ))}
+        <div className="hero__veil" aria-hidden="true" />
+
+        <header className="hero__header shell">
+          <button className="brand" type="button" onClick={() => scrollToSection('inicio')} aria-label="Volver al inicio">
+            AG<span>_</span>
+          </button>
+
+          <div className="live-index" aria-label="Progreso del portfolio">
+            <div className="live-index__meta">
+              <span>{sections[sectionIndex][1]}</span>
+            </div>
+            <div className="live-index__track" aria-hidden="true"><i /></div>
+            <button type="button" onClick={toggleVideo} aria-label={videoPaused ? 'Reproducir video' : 'Pausar video'}>
+              {videoPaused ? '▶ REPRODUCIR' : 'Ⅱ PAUSAR'}
+            </button>
           </div>
-          <ChefToCodeIllustration />
+        </header>
+
+        <div className="hero__content shell">
+          <p className="hero__role">COFUNDADOR DE NEXVORA <span>·</span> FUNDADOR DE KITCHEN OPS</p>
+          <h1 id="hero-title">De los<br /><em>fogones</em><br />al futuro.</h1>
+          <p className="hero__intro">Licenciado en Gastronomía especializado en transformar experiencia operativa real en productos, marcas y soluciones digitales.</p>
+          <div className="hero__actions">
+            <button className="button button--outline" type="button" onClick={() => scrollToSection('perfil')}>Conoce mi historia <Arrow /></button>
+            <button className="text-button" type="button" onClick={() => scrollToSection('contacto')}>Trabajemos juntos <span>↘</span></button>
+          </div>
         </div>
-        <div className="hero-footer shell"><span className="scroll-cue"><i /> BAJA PARA EXPLORAR</span><p>Gastrónomo en transición<br />hacia <strong>Software Developer</strong></p><span className="location">Playa del Carmen, MX <b>●</b></span></div>
-      </section>
 
-      <div className="ticker" aria-hidden="true"><div>MISE EN PLACE <span>✳</span> HUMAN-CENTERED <span>✳</span> BUILT WITH INTENTION <span>✳</span> MISE EN PLACE <span>✳</span> HUMAN-CENTERED <span>✳</span> BUILT WITH INTENTION <span>✳</span></div></div>
-
-      <section className="story section shell" id="historia">
-        <div className="section-kicker reveal"><span>01</span> LA HISTORIA</div>
-        <div className="story-grid">
-          <div className="story-heading reveal"><p className="handwriting">Un cambio de<br />receta.</p><h2>Todo gran plato<br />empieza con una<br /><em>intuición.</em></h2></div>
-          <div className="story-body reveal"><p>Mi primera carrera me enseñó a escuchar: a los equipos, a los detalles y a las personas detrás de cada mesa. Como chef en la Riviera Maya, aprendí que una gran experiencia nunca ocurre por accidente.</p><p>En tecnología encontré un nuevo lenguaje para esa misma idea: entender un problema, ordenar el caos y crear algo que haga la vida de alguien un poco mejor.</p><div className="quote-mark">“</div><blockquote>El código, como la cocina, es oficio, curiosidad y un poco de valentía.</blockquote></div>
-        </div>
-      </section>
-
-      <section className="bridge-section"><div className="bridge shell reveal"><div className="bridge-number">01<span>/</span>02</div><div className="bridge-steps"><div className="bridge-step bridge-step--chef"><DishIcon /><span>Antes</span><strong>Chef</strong></div><div className="bridge-arrow"><span>→</span><small>TRADUCIR<br />APRENDIZAJES</small></div><div className="bridge-step bridge-step--code"><CodeIcon /><span>Ahora</span><strong>Developer</strong></div></div><p>La vocación cambió.<br />La manera de trabajar, no.</p></div></section>
-
-      <section className="craft section shell" id="habilidades">
-        <div className="section-kicker reveal"><span>02</span> EL OFICIO QUE TRAIGO</div>
-        <div className="craft-intro reveal"><h2>Mi experiencia no quedó<br />en la <em>cocina.</em> Evolucionó.</h2><p>Estas son las herramientas invisibles que llevo conmigo al construir productos digitales.</p></div>
-        <div className="strength-grid">
-          <article className="strength-card reveal"><span className="card-index">A / 01</span><div className="line-illustration"><span /><span /><span /></div><h3>Mise en place</h3><p>Preparar con intención antes de ejecutar. Sistemas claros, prioridades definidas y atención a cada dependencia.</p><small>→ PENSAMIENTO ESTRUCTURADO</small></article>
-          <article className="strength-card strength-card--warm reveal"><span className="card-index">A / 02</span><div className="pressure-illustration"><i /><i /><i /><b>!</b></div><h3>Calma bajo presión</h3><p>Decidir rápido sin perder precisión. Porque tanto un servicio como un deploy requieren presencia.</p><small>→ RESOLUCIÓN DE PROBLEMAS</small></article>
-          <article className="strength-card strength-card--dark reveal"><span className="card-index">A / 03</span><div className="taste-illustration"><span>+</span><span>+</span><span>+</span><i /></div><h3>Obsesión por la experiencia</h3><p>Los pequeños detalles cambian cómo se siente algo. Diseño y desarrollo pensados para las personas.</p><small>→ EMPATÍA DE USUARIO</small></article>
+        <div className="hero__footer shell">
+          <nav aria-label="Accesos principales">
+            <button type="button" onClick={() => scrollToSection('obra')}>Obra</button>
+            <button type="button" onClick={() => scrollToSection('sushi-zen')}>Diseño</button>
+            <button type="button" onClick={() => scrollToSection('productos')}>Productos</button>
+          </nav>
+          <span>TULUM, MX</span>
+          <button className="scroll-cue" type="button" onClick={() => scrollToSection('perfil')}>DESCUBRE LA HISTORIA <Arrow direction="down" /></button>
         </div>
       </section>
 
-      <section className="recipe-section"><div className="recipe shell reveal"><div className="recipe-top"><span>03 / MI NUEVA RECETA</span><span>ESTÁ EN PROCESO</span></div><div className="recipe-layout"><div className="recipe-title"><h2>Less<br /><em>guessing.</em><br />More making.</h2><Spark /></div><ol className="recipe-list"><li><b>01</b><div><strong>Escuchar</strong><p>Entender a las personas antes de escribir una sola línea.</p></div></li><li><b>02</b><div><strong>Prototipar</strong><p>Convertir ideas complejas en soluciones simples y tangibles.</p></div></li><li><b>03</b><div><strong>Iterar</strong><p>Probar, ajustar y servir una versión mejor cada vez.</p></div></li></ol></div><div className="terminal"><span className="terminal-dots"><i /><i /><i /></span><span><b>alejandro@new-path</b>:~$</span> <em>building meaningful things...</em><span className="cursor">_</span></div></div></section>
+      <section className="profile section" id="perfil" aria-labelledby="profile-title">
+        <div className="shell profile__grid">
+          <div className="profile__copy reveal">
+            <p className="eyebrow"><span>01</span> PERFIL</p>
+            <p className="script-note">Una misma disciplina,<br />un nuevo lenguaje.</p>
+            <h2 id="profile-title">Cocina, diseño<br />y producto<br /><em>con propósito.</em></h2>
+            <p className="profile__lead">Soy Alejandro García Bazán. Mi carrera comenzó creando experiencias desde la cocina y evolucionó hacia la construcción de productos digitales.</p>
+            <p>Hoy combino criterio gastronómico, dirección de producto, diseño de experiencia y desarrollo de software para convertir necesidades operativas complejas en soluciones digitales claras, funcionales y medibles.</p>
+            <dl className="profile__facts">
+              <div><dt>Base</dt><dd>Gastronomía</dd></div>
+              <div><dt>Enfoque</dt><dd>Producto digital</dd></div>
+              <div><dt>Método</dt><dd>Investigar · construir · validar</dd></div>
+            </dl>
+          </div>
+          <div className="profile__portrait reveal">
+            <div className="profile__halo" aria-hidden="true" />
+            <img src={asset('portfolio/profile/alejandro-chef.png')} alt="Avatar de Alejandro García Bazán como chef y creador digital" />
+            <span className="profile__tag profile__tag--one">CHEF</span>
+            <span className="profile__tag profile__tag--two">FOUNDER</span>
+            <span className="profile__tag profile__tag--three">DEVELOPER</span>
+          </div>
+        </div>
+      </section>
 
-      <section className="projects section shell"><div className="section-kicker reveal"><span>04</span> PRÓXIMOS PROYECTOS</div><div className="projects-top reveal"><h2>Las mejores<br />historias apenas<br /><em>comienzan.</em></h2><p>Estoy convirtiendo aprendizaje en proyectos. Muy pronto, este espacio tendrá casos de estudio, experimentos y cosas hechas con cariño.</p></div><div className="project-placeholder reveal"><span>CASE STUDY / 001</span><div className="placeholder-graphic"><div className="pixel pixel--one" /><div className="pixel pixel--two" /><div className="pixel pixel--three" /><div className="pixel pixel--four" /><Spark /></div><div><p>PRÓXIMAMENTE</p><h3>Algo está<br />tomando forma.</h3></div><span className="placeholder-arrow">↗</span></div></section>
+      <section className="journey" id="trayectoria" aria-labelledby="journey-title">
+        <div className="shell">
+          <div className="section-heading reveal">
+            <p className="eyebrow eyebrow--light"><span>02</span> EVOLUCIÓN</p>
+            <h2 id="journey-title">La profesión cambió.<br /><em>El rigor permanece.</em></h2>
+          </div>
+          <div className="journey__steps">
+            <article className="reveal"><span>01</span><p>Experiencia profesional</p><h3>Gastronomía</h3><small>Operación, servicio, precisión y trabajo con equipos.</small></article>
+            <article className="reveal"><span>02</span><p>Comunicación visual</p><h3>Diseño</h3><small>Marcas, menús y piezas comerciales para restaurantes.</small></article>
+            <article className="reveal"><span>03</span><p>Soluciones reales</p><h3>Producto</h3><small>Investigación, UX, programación y decisiones funcionales.</small></article>
+            <article className="reveal"><span>04</span><p>Construcción de futuro</p><h3>Fundación</h3><small>Nexvora, Kitchen Ops y nuevos sistemas digitales.</small></article>
+          </div>
+        </div>
+      </section>
 
-      <footer id="contacto"><div className="footer-top shell"><p className="footer-label">¿HABLAMOS?</p><h2>Hagamos algo<br /><em>delicioso.</em></h2><a className="footer-email" href="mailto:hola@alejandrogarcia.dev">hola@alejandrogarcia.dev <Arrow /></a></div><div className="footer-bottom shell"><span>© 2026 ALEJANDRO GARCÍA</span><span>HECHO EN MÉXICO <b>✳</b></span><a href="#inicio">VOLVER ARRIBA ↑</a></div></footer>
+      <section className="culinary section" id="obra" aria-labelledby="culinary-title">
+        <div className="shell culinary__intro reveal">
+          <p className="eyebrow"><span>03</span> OBRA CULINARIA</p>
+          <h2 id="culinary-title"><strong>VISIÓN</strong> CON<br /><strong>DETERMINACIÓN</strong><br />HASTA TOMAR <strong>FORMA.</strong></h2>
+          <p>La evidencia de una profesión construida entre técnica, sensibilidad y ejecución.</p>
+        </div>
+        <div className="film reveal" aria-label="Galería gastronómica">
+          <div className="film__track">
+            {[0, 1].map((group) => (
+              <div className="film__group" aria-hidden={group === 1} key={group}>
+                {culinaryPhotos.map(([src, alt], index) => (
+                  <figure key={`${src}-${group}`}><img src={asset(src)} alt={group === 0 ? alt : ''} loading={group === 0 && index < 5 ? 'eager' : 'lazy'} /></figure>
+                ))}
+              </div>
+            ))}
+          </div>
+        </div>
+        <p className="culinary__closing shell reveal">La precisión en cada detalle convierte lo visual en una <em>experiencia memorable.</em></p>
+      </section>
+
+      <section className="case-study section" id="sushi-zen" aria-labelledby="sushi-title">
+        <div className="shell">
+          <div className="case-study__heading reveal">
+            <div><p className="eyebrow"><span>04</span> CASO REAL · SUSHI ZEN</p><h2 id="sushi-title">Diseñar también es<br /><em>servir una experiencia.</em></h2></div>
+            <p>Proyecto de comunicación visual para un negocio de comida japonesa: campaña promocional y diseño editorial de menú.</p>
+          </div>
+          <div className="sushi-grid">
+            <article className="sushi-card sushi-card--campaign reveal">
+              <div className="sushi-card__copy"><span>IDENTIDAD COMERCIAL / 01</span><h3>Marketing<br />para restaurante</h3><p>Una pieza vertical pensada para comunicar oferta, carácter y recordación de marca.</p></div>
+              <img src={asset('portfolio/sushi-zen/marketing-lona.png')} alt="Diseño de lona promocional para Sushi Zen" loading="lazy" />
+            </article>
+            <article className="sushi-card sushi-card--menu reveal">
+              <div className="sushi-card__copy"><span>DISEÑO EDITORIAL / 02</span><h3>Creación<br />de menús</h3><p>Jerarquía, legibilidad y una presentación coherente con el concepto del restaurante.</p></div>
+              <div className="menu-spread">
+                <img src={asset('portfolio/sushi-zen/menu-cara-1.png')} alt="Primera cara del menú de Sushi Zen" loading="lazy" />
+                <img src={asset('portfolio/sushi-zen/menu-cara-2.png')} alt="Segunda cara del menú de Sushi Zen" loading="lazy" />
+              </div>
+            </article>
+          </div>
+          <div className="coming-soon reveal"><span>PRÓXIMA INCORPORACIÓN</span><p>Modelo de costeo en Excel · En proceso de rediseño para su presentación como herramienta profesional.</p></div>
+        </div>
+      </section>
+
+      <section className="products section" id="productos" aria-labelledby="products-title">
+        <div className="shell">
+          <div className="products__heading reveal">
+            <p className="eyebrow eyebrow--light"><span>05</span> PRODUCTOS DIGITALES</p>
+            <h2 id="products-title">Del conocimiento operativo<br />a sistemas que <em>resuelven.</em></h2>
+          </div>
+          <article className="product product--kitchen reveal">
+            <div className="product__meta"><span>01 / KITCHEN OPS ACADEMY</span><span>PRODUCTO B2B · EN DESARROLLO</span></div>
+            <div className="product__body">
+              <div><p className="product__role">FUNDADOR · DIRECCIÓN DE PRODUCTO · DESARROLLO</p><h3>Convertir la operación real en aprendizaje aplicable.</h3><p>Plataforma para transformar documentación operativa de restaurantes en conocimiento interactivo, contextual, medible y versionado.</p></div>
+              <ol>
+                <li><span>01</span> Visión y estrategia de producto</li>
+                <li><span>02</span> Arquitectura funcional y roadmap</li>
+                <li><span>03</span> UX, programación y validación</li>
+              </ol>
+            </div>
+          </article>
+
+          <article className="product product--drive reveal">
+            <div className="product__meta"><span>02 / INTELIDRIVE</span><span>VALIDACIÓN VEHICULAR · EN DESARROLLO</span></div>
+            <div className="product__body">
+              <div><p className="product__role">COCREACIÓN · UX/UI · PROGRAMACIÓN</p><h3>Entender un historial de mantenimiento sin descifrar cada documento.</h3><p>Sistema que extrae, ordena y valida información de mantenimiento para facilitar decisiones sobre el estado de un vehículo.</p></div>
+              <div className="product__visual product__visual--drive">
+                <img className="product__logo" src={asset('portfolio/products/intelidrive-logo.png')} alt="Logotipo de InteliDrive Vehicle Intelligence" loading="lazy" />
+                <img className="product__dashboard" src={asset('portfolio/products/intelidrive-dashboard.png')} alt="Panel operativo de InteliDrive" loading="lazy" />
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section className="nexvora section" id="nexvora" aria-labelledby="nexvora-title">
+        <div className="shell nexvora__grid">
+          <div className="reveal"><p className="eyebrow"><span>06</span> ECOSISTEMA</p><h2 id="nexvora-title">Construir dentro<br />de una visión<br /><em>compartida.</em></h2></div>
+          <div className="nexvora__content reveal">
+            <div className="nexvora__placeholder"><span>NX</span><p>LOGOTIPO DE NEXVORA<br />PENDIENTE</p></div>
+            <p>Como cofundador de Nexvora participo en la dirección, construcción y evolución de productos digitales. Kitchen Ops nace dentro de este ecosistema como el núcleo especializado en soluciones para cocina y hospitalidad.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer id="contacto" className="contact">
+        <div className="shell contact__main reveal">
+          <p className="eyebrow eyebrow--light"><span>07</span> CONTACTO</p>
+          <h2>Convirtamos una idea<br />en algo que <em>funcione.</em></h2>
+          <p className="contact__intro">Disponible para conversaciones sobre producto, tecnología, gastronomía y proyectos que conecten estos mundos.</p>
+          <div className="contact__actions">
+            <button type="button" onClick={() => copyContact('correo', 'alebazan42@gmail.com')}><img className="contact__icon" src={asset('portfolio/icons/gmail.png')} alt="" /><span>CORREO</span><strong>{copied === 'correo' ? 'Copiado' : 'alebazan42@gmail.com'}</strong><Arrow /></button>
+            <button type="button" onClick={() => copyContact('whatsapp', '+525624348950')}><img className="contact__icon" src={asset('portfolio/icons/whatsapp.png')} alt="" /><span>WHATSAPP</span><strong>{copied === 'whatsapp' ? 'Copiado' : '+52 56 2434 8950'}</strong><Arrow /></button>
+            <div className="contact__pending"><span>LINKEDIN</span><strong>Próximamente</strong></div>
+          </div>
+        </div>
+        <div className="shell contact__bottom"><span>© 2026 ALEJANDRO GARCÍA BAZÁN</span><span>TULUM, MÉXICO</span><button type="button" onClick={() => scrollToSection('inicio')}>VOLVER ARRIBA ↑</button></div>
+      </footer>
     </main>
   )
 }
